@@ -389,6 +389,12 @@ func (s stage) createFilesystem(fs types.Mount) error {
 		if fs.Label != nil {
 			args = append(args, []string{"-n", *fs.Label}...)
 		}
+	case "ntfs":
+		mkfs = "/sbin/mkfs.ntfs"
+		args = append(args, "-f")
+		if fs.Label != nil {
+			args = append(args, []string{"-L", *fs.Label}...)
+		}
 	default:
 		return fmt.Errorf("unsupported filesystem format: %q", fs.Format)
 	}
