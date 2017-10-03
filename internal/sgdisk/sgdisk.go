@@ -36,6 +36,7 @@ type Partition struct {
 	Label    string
 	TypeGUID string
 	GUID     string
+	Bootable bool
 }
 
 // Begin begins an sgdisk operation
@@ -77,6 +78,9 @@ func (op *Operation) Commit() error {
 			}
 			if p.GUID != "" {
 				opts = append(opts, fmt.Sprintf("--partition-guid=%d:%s", p.Number, p.GUID))
+			}
+			if p.Bootable {
+				opts = append(opts, fmt.Sprintf("--attributes=%d:set:2", p.Number))
 			}
 		}
 		opts = append(opts, op.dev)

@@ -319,6 +319,9 @@
             "guid": {
               "type": "string"
             },
+            "bootable": {
+              "type": "boolean"
+            },
             "images": {
               "type": "array",
               "items": {

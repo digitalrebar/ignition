@@ -137,6 +137,7 @@ type NodeUser struct {
 }
 
 type Partition struct {
+	Bootable bool    `json:"bootable,omitempty"`
 	GUID     string  `json:"guid,omitempty"`
 	Images   []Image `json:"images,omitempty"`
 	Label    string  `json:"label,omitempty"`
