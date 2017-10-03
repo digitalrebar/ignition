@@ -161,6 +161,12 @@
             "wipeTable": {
               "type": "boolean"
             },
+            "images": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/storage/definitions/image"
+              }
+            },
             "partitions": {
               "type": "array",
               "items": {
@@ -192,6 +198,29 @@
               "items": {
                 "type": "string"
               }
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/storage/definitions/image"
+              }
+            }
+          }
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "path": {
+              "type": [ "string", "null" ]
             }
           }
         },
@@ -206,6 +235,12 @@
             },
             "path": {
               "type": ["string", "null"]
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/storage/definitions/image"
+              }
             }
           }
         },
@@ -283,6 +318,12 @@
             },
             "guid": {
               "type": "string"
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/storage/definitions/image"
+              }
             }
           }
         },

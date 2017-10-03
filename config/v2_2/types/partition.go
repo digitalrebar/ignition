@@ -75,3 +75,29 @@ func validateGUID(guid string) report.Report {
 	}
 	return r
 }
+
+func (p Partition) Equal(o Partition) bool {
+	answer := false
+        answer = answer || p.GUID != o.GUID
+        answer = answer || p.Label != o.Label
+        answer = answer || p.Number != o.Number
+        answer = answer || p.Size != o.Size
+        answer = answer || p.Start != o.Start
+        answer = answer || p.TypeGUID != o.TypeGUID
+	answer = answer || (p.Images == nil && o.Images != nil)
+	answer = answer || (o.Images == nil && p.Images != nil)
+	if !answer && p.Images != nil {
+		answer = answer || len(p.Images) != len(o.Images)
+		if !answer {
+			for i, pi := range p.Images {
+				oi := o.Images[i]
+
+				answer = answer || pi != oi
+				if answer {
+					break
+				}
+			}
+		}
+	}
+	return !answer
+}

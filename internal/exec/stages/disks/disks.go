@@ -28,6 +28,7 @@ import (
 	"github.com/coreos/ignition/internal/distro"
 	"github.com/coreos/ignition/internal/exec/stages"
 	"github.com/coreos/ignition/internal/exec/util"
+	"github.com/coreos/ignition/internal/image"
 	"github.com/coreos/ignition/internal/log"
 	"github.com/coreos/ignition/internal/resource"
 	"github.com/coreos/ignition/internal/sgdisk"
@@ -191,6 +192,14 @@ func (s stage) createPartitions(config types.Config) error {
 	for _, dev := range config.Storage.Disks {
 		devAlias := util.DeviceAlias(string(dev.Device))
 
+		if dev.Images != nil && len(dev.Images) > 0 {
+			for _, img := range dev.Images {
+				if err := image.ApplyImage(s.Logger, img, devAlias); err != nil {
+					return err
+				}
+			}
+		}
+
 		err := s.Logger.LogOp(func() error {
 			op := sgdisk.Begin(s.Logger, devAlias)
 			if dev.WipeTable {
@@ -211,6 +220,21 @@ func (s stage) createPartitions(config types.Config) error {
 
 			if err := op.Commit(); err != nil {
 				return fmt.Errorf("commit failure: %v", err)
+			}
+
+			for _, part := range dev.Partitions {
+				if part.Images != nil && len(part.Images) > 0 {
+					for _, img := range part.Images {
+						// GREG: Derive part name for use in the image dest
+						partName := "GREGPART"
+						if err := s.waitOnDevicesAndCreateAliases([]string{partName}, "images"); err != nil {
+							return err
+						}
+						if err := image.ApplyImage(s.Logger, img, partName); err != nil {
+							return err
+						}
+					}
+				}
 			}
 			return nil
 		}, "partitioning %q", devAlias)
@@ -268,6 +292,17 @@ func (s stage) createRaids(config types.Config) error {
 			"creating %q", md.Name,
 		); err != nil {
 			return fmt.Errorf("mdadm failed: %v", err)
+		}
+
+		if md.Images != nil && len(md.Images) > 0 {
+			if err := s.waitOnDevicesAndCreateAliases([]string{md.Name}, "images"); err != nil {
+				return err
+			}
+			for _, img := range md.Images {
+				if err := image.ApplyImage(s.Logger, img, md.Name); err != nil {
+					return err
+				}
+			}
 		}
 	}
 

@@ -35,6 +35,7 @@ type DirectoryEmbedded1 struct {
 
 type Disk struct {
 	Device     string      `json:"device,omitempty"`
+	Images     []Image     `json:"images,omitempty"`
 	Partitions []Partition `json:"partitions,omitempty"`
 	WipeTable  bool        `json:"wipeTable,omitempty"`
 }
@@ -61,10 +62,13 @@ type FileEmbedded1 struct {
 }
 
 type Filesystem struct {
-	Mount *Mount  `json:"mount,omitempty"`
-	Name  string  `json:"name,omitempty"`
-	Path  *string `json:"path,omitempty"`
+	Images []Image `json:"images,omitempty"`
+	Mount  *Mount  `json:"mount,omitempty"`
+	Name   string  `json:"name,omitempty"`
+	Path   *string `json:"path,omitempty"`
 }
+
+type Group string
 
 type Ignition struct {
 	Config   IgnitionConfig `json:"config,omitempty"`
@@ -75,6 +79,13 @@ type Ignition struct {
 type IgnitionConfig struct {
 	Append  []ConfigReference `json:"append,omitempty"`
 	Replace *ConfigReference  `json:"replace,omitempty"`
+}
+
+type Image struct {
+	Name   string  `json:"name,omitempty"`
+	Path   *string `json:"path,omitempty"`
+	Source string  `json:"source,omitempty"`
+	Type   string  `json:"type,omitempty"`
 }
 
 type Link struct {
@@ -126,12 +137,13 @@ type NodeUser struct {
 }
 
 type Partition struct {
-	GUID     string `json:"guid,omitempty"`
-	Label    string `json:"label,omitempty"`
-	Number   int    `json:"number,omitempty"`
-	Size     int    `json:"size,omitempty"`
-	Start    int    `json:"start,omitempty"`
-	TypeGUID string `json:"typeGuid,omitempty"`
+	GUID     string  `json:"guid,omitempty"`
+	Images   []Image `json:"images,omitempty"`
+	Label    string  `json:"label,omitempty"`
+	Number   int     `json:"number,omitempty"`
+	Size     int     `json:"size,omitempty"`
+	Start    int     `json:"start,omitempty"`
+	TypeGUID string  `json:"typeGuid,omitempty"`
 }
 
 type Passwd struct {
@@ -149,7 +161,7 @@ type PasswdGroup struct {
 type PasswdUser struct {
 	Create            *Usercreate        `json:"create,omitempty"`
 	Gecos             string             `json:"gecos,omitempty"`
-	Groups            []PasswdUserGroup  `json:"groups,omitempty"`
+	Groups            []Group            `json:"groups,omitempty"`
 	HomeDir           string             `json:"homeDir,omitempty"`
 	Name              string             `json:"name,omitempty"`
 	NoCreateHome      bool               `json:"noCreateHome,omitempty"`
@@ -163,10 +175,9 @@ type PasswdUser struct {
 	UID               *int               `json:"uid,omitempty"`
 }
 
-type PasswdUserGroup string
-
 type Raid struct {
 	Devices []Device `json:"devices,omitempty"`
+	Images  []Image  `json:"images,omitempty"`
 	Level   string   `json:"level,omitempty"`
 	Name    string   `json:"name,omitempty"`
 	Spares  int      `json:"spares,omitempty"`
