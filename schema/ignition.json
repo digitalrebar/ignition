@@ -348,6 +348,9 @@
             "wipeFilesystem": {
               "type": "boolean"
             },
+            "resizeFilesystem": {
+              "type": "boolean"
+            },
             "label": {
               "type": ["string", "null"]
             },

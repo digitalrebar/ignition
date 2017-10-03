@@ -21,8 +21,11 @@ package disks
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"github.com/coreos/ignition/internal/config/types"
 	"github.com/coreos/ignition/internal/distro"
@@ -226,8 +229,7 @@ func (s stage) createPartitions(config types.Config) error {
 			for _, part := range dev.Partitions {
 				if part.Images != nil && len(part.Images) > 0 {
 					for _, img := range part.Images {
-						// GREG: Derive part name for use in the image dest
-						partName := "GREGPART"
+						partName := fmt.Sprintf("%s%d", dev.Device, part.Number)
 						if err := s.waitOnDevicesAndCreateAliases([]string{partName}, "images"); err != nil {
 							return err
 						}
@@ -343,6 +345,106 @@ func (s stage) createFilesystems(config types.Config) error {
 	return nil
 }
 
+func (s stage) handleResizeFS(fs types.Mount) error {
+        mountFirst := false
+	resizefs := ""
+	var args []string
+
+	devAlias := util.DeviceAlias(string(fs.Device))
+
+        resizeCnt := ""
+	if buf, err := exec.Command("lsblk", []string{
+		fs.Device,
+		"--output",
+		"SIZE",
+		"-b",
+		"-n",
+		}...).Output(); err != nil {
+		return err
+	} else {
+		resizeCnt = strings.TrimSpace(string(buf))
+	}
+
+	switch fs.Format {
+	case "btrfs":
+		resizefs = "/sbin/btrfs"
+		args = append(args, "filesystem")
+		args = append(args, "resize")
+		args = append(args, "max")
+		mountFirst = true
+	case "ext4":
+		resizefs = "/sbin/resize2fs"
+		args = append(args, devAlias)
+	case "xfs":
+		resizefs = "/sbin/xfs_growfs"
+		mountFirst = true
+	case "swap":
+		resizefs = "/sbin/mkswap"
+		args = append(args, devAlias)
+	case "vfat":
+		resizefs = "/sbin/fatresize"
+		args = append(args, "-s")
+		args = append(args, resizeCnt)
+		args = append(args, devAlias)
+	case "ntfs":
+		resizefs = "/sbin/ntfsresize"
+		args = append(args, "-f")
+		args = append(args, "-s")
+		args = append(args, resizeCnt)
+		args = append(args, devAlias)
+	default:
+		return fmt.Errorf("unsupported filesystem format: %q", fs.Format)
+	}
+
+	if mountFirst {
+                mnt, err := ioutil.TempDir("", "ignition-resize")
+                if err != nil {
+                        return fmt.Errorf("failed to create temp directory: %v", err)
+                }
+                defer os.Remove(mnt)
+
+		dev := string(fs.Device)
+                format := string(fs.Format)
+
+                if err := s.Logger.LogOp(
+                        func() error {
+                                if format != "ntfs" {
+                                        return syscall.Mount(dev, mnt, format, 0, "")
+                                }
+                                cmd := fmt.Sprintf("mount -t ntfs %s %s", dev, mnt)
+                                _, err := exec.Command("bash", "-c", cmd).Output()
+                                return err
+                        },
+                        "mounting %q at %q", dev, mnt,
+                ); err != nil {
+                        return fmt.Errorf("failed to mount device %q at %q: %v", dev, mnt, err)
+                }
+                defer s.Logger.LogOp(
+                        func() error {
+                                if format != "ntfs" {
+                                        return syscall.Unmount(mnt, 0)
+                                }
+                                cmd := fmt.Sprintf("umount %s", mnt)
+                                _, err := exec.Command("bash", "-c", cmd).Output()
+                                return err
+                        },
+                        "unmounting %q at %q", dev, mnt,
+                )
+
+		args = append(args, mnt)
+	}
+
+	if _, err := s.Logger.LogCmd(
+		exec.Command(resizefs, args...),
+		"resizing %q filesystem on %q",
+		fs.Format, devAlias,
+	); err != nil {
+		return fmt.Errorf("resizefs failed: %v", err)
+	}
+
+	return nil
+}
+
 func (s stage) createFilesystem(fs types.Mount) error {
 	info, err := s.readFilesystemInfo(fs)
 	if err != nil {
@@ -364,6 +466,10 @@ func (s stage) createFilesystem(fs types.Mount) error {
 			(fs.Label == nil || info.label == *fs.Label) &&
 			(fs.UUID == nil || canonicalizeFilesystemUUID(info.format, info.uuid) == canonicalizeFilesystemUUID(fs.Format, *fs.UUID)) {
 			s.Logger.Info("filesystem at %q is already correctly formatted. Skipping mkfs...", fs.Device)
+
+			if fs.ResizeFilesystem {
+				return s.handleResizeFS(fs)
+			}
 			return nil
 		} else if info.format != "" {
 			s.Logger.Err("filesystem at %q is not of the correct type, label, or UUID (found %s, %q, %s) and a filesystem wipe was not requested", fs.Device, info.format, info.label, info.uuid)
