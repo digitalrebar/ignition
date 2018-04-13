@@ -256,8 +256,29 @@ func depth(n types.Node) uint {
 // used. The directories are sorted to ensure /foo gets created before /foo/bar.
 func (s stage) mapEntriesToFilesystems(config types.Config) (map[string][]filesystemEntry, error) {
 	filesystems := map[string]types.Filesystem{}
+        mountPoints := map[string]*string{}
+	fsparts := [][]string{
+		[]string{ "devpts", "/dev/pts", "devpts", "gid=5,mode=620", "0", "0" },
+		[]string{ "tmpfs", "/dev/shm", "tmpfs", "defaults", "0", "0" },
+		[]string{ "proc", "/proc", "proc", "defaults", "0", "0" },
+		[]string{ "sysfs", "/sys", "sysfs", "defaults", "0", "0" },
+	}
+	var rootFs *types.Filesystem
 	for _, fs := range config.Storage.Filesystems {
 		filesystems[fs.Name] = fs
+		if fs.Mount != nil && fs.Mount.Point != nil {
+			mountPoints[fs.Name] = fs.Mount.Point
+			fsparts = append(fsparts, []string{
+				fmt.Sprintf("LABEL=%s", fs.Mount.Label),
+				*fs.Mount.Point,
+				fs.Mount.Format,
+				"defaults",
+				"0",
+				"0"})
+		}
+		if fs.Mount.Label != nil && *fs.Mount.Label == "root" {
+			rootFs = &fs
+		}
 	}
 
 	entryMap := map[string][]filesystemEntry{}
@@ -273,6 +294,13 @@ func (s stage) mapEntriesToFilesystems(config types.Config) (map[string][]filesy
 		} else {
 			s.Logger.Crit("the filesystem (%q), was not defined", d.Filesystem)
 			return nil, ErrFilesystemUndefined
+		}
+	}
+	// Make sure all mount point directories exist
+	if rootFs != nil && len(mountPoints) > 0 {
+		for _, dir := range mountPoints {
+			d := dirEntry{ Node: types.Node{Path: *dir, Filesystem: rootFs.Name} }
+			entryMap[rootFs.Name] = append(entryMap[rootFs.Name], d)
 		}
 	}
 
@@ -294,10 +322,18 @@ func (s stage) mapEntriesToFilesystems(config types.Config) (map[string][]filesy
 		}
 	}
 
+	// Root file system and we have mount points.
+	// Build an /etc/fstab
+	if rootFs != nil && len(mountPoints) > 0 {
+			f := fileEntry{ Node: types.Node{Path: "etc/fstab", Filesystem: rootFs.Name} }
+			entryMap[rootFs.Name] = append(entryMap[rootFs.Name], f)
+	}
+
 	return entryMap, nil
 }
 
 // createEntries creates any files or directories listed for the filesystem in Storage.{Files,Directories}.
+// Additionally will apply images and bootloader files as needed.
 func (s stage) createEntries(fs types.Filesystem, files []filesystemEntry) error {
 	s.Logger.PushPrefix("createFiles")
 	defer s.Logger.PopPrefix()
@@ -358,6 +394,13 @@ func (s stage) createEntries(fs types.Filesystem, files []filesystemEntry) error
 		if err := e.create(s.Logger, u); err != nil {
 			return err
 		}
+	}
+
+	// If the file system is marked to be booted from, install the boot loader pieces.
+	// This will add syslinux files to a /boot or /Boot directory, place a config file,
+        // and install the gptmgr bootloader.
+	if fs.Mount != nil && fs.Mount.BootFilesystem {
+
 	}
 
 	return nil

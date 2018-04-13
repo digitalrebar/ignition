@@ -354,6 +354,9 @@
             "bootFilesystem": {
               "type": "boolean"
             },
+            "point": {
+              "type": ["string", "null"]
+            },
             "label": {
               "type": ["string", "null"]
             },

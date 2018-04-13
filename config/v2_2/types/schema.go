@@ -101,13 +101,16 @@ type LinkEmbedded1 struct {
 }
 
 type Mount struct {
-	Create         *Create       `json:"create,omitempty"`
-	Device         string        `json:"device,omitempty"`
-	Format         string        `json:"format,omitempty"`
-	Label          *string       `json:"label,omitempty"`
-	Options        []MountOption `json:"options,omitempty"`
-	UUID           *string       `json:"uuid,omitempty"`
-	WipeFilesystem bool          `json:"wipeFilesystem,omitempty"`
+	BootFilesystem   bool          `json:"bootFilesystem,omitempty"`
+	Create           *Create       `json:"create,omitempty"`
+	Device           string        `json:"device,omitempty"`
+	Format           string        `json:"format,omitempty"`
+	Label            *string       `json:"label,omitempty"`
+	Options          []MountOption `json:"options,omitempty"`
+	Point            *string       `json:"point,omitempty"`
+	ResizeFilesystem bool          `json:"resizeFilesystem,omitempty"`
+	UUID             *string       `json:"uuid,omitempty"`
+	WipeFilesystem   bool          `json:"wipeFilesystem,omitempty"`
 }
 
 type MountOption string

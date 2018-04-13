@@ -13,8 +13,8 @@ func ApplyImage(logger *log.Logger, image types.Image, basePath string) error {
 	defer logger.PopPrefix()
 
 	path := basePath
-	if image.Path != nil {
-		path = path + "/" + *image.Path
+	if image.Path != "" {
+		path = path + "/" + image.Path
 	}
 
 	// Using source and type, get an image.  Run appropriate tool with path as dest.

@@ -107,6 +107,7 @@ type Mount struct {
 	Format           string        `json:"format,omitempty"`
 	Label            *string       `json:"label,omitempty"`
 	Options          []MountOption `json:"options,omitempty"`
+	Point            *string       `json:"point,omitempty"`
 	ResizeFilesystem bool          `json:"resizeFilesystem,omitempty"`
 	UUID             *string       `json:"uuid,omitempty"`
 	WipeFilesystem   bool          `json:"wipeFilesystem,omitempty"`
@@ -201,7 +202,7 @@ type RaidOption string
 type SSHAuthorizedKey string
 
 type Security struct {
-	TLS TLS `json:"tls,omitempty"`
+	TLS `json:"tls,omitempty"`
 }
 
 type Storage struct {
