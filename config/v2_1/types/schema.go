@@ -80,10 +80,10 @@ type IgnitionConfig struct {
 }
 
 type Image struct {
-	Name   string  `json:"name,omitempty"`
-	Path   *string `json:"path,omitempty"`
-	Source string  `json:"source,omitempty"`
-	Type   string  `json:"type,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Path   string `json:"path,omitempty"`
+	Source string `json:"source,omitempty"`
+	Type   string `json:"type,omitempty"`
 }
 
 type Link struct {

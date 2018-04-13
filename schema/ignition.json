@@ -220,7 +220,7 @@
               "type": "string"
             },
             "path": {
-              "type": [ "string", "null" ]
+              "type": "string"
             }
           }
         },
